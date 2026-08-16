@@ -1,0 +1,36 @@
+{
+  "name": "pokeDex",
+  "version": "1.0.0",
+  "description": "pokedex com api de pokemon",
+  "main": "server.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "cls && nodemon src/server.js"
+  },
+  "keywords": [
+    "SENAI",
+    "NodeJS",
+    "Express",
+    "API",
+    "Prisma",
+    "PostgreSQL"
+  ],
+  "author": "emilio",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "@supabase/supabase-js": "^2.112.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.2.0",
+    "pg": "^8.23.0",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^7.3.0"
+  }
+}
