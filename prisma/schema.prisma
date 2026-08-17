@@ -1,41 +1,34 @@
 generator client {
-    provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
-model User {
-  id                 String   @id @default(uuid())
-  name               String
-  email              String   @unique
-  password           String
-  
-  // Opcionais para personalizar o perfil do treinador
-  avatarUrl          String?  // Foto de perfil ou sprite do treinador
-  favoritePokemonId  Int?     // ID do Pokémon favorito na PokéAPI (ex: 25 para Pikachu)
+model Usuario {
+  id                Int         @id @default(autoincrement())
+  name              String
+  email             String         @unique
+  password          String
+  avatarUrl         String?
+  favoritePokemonId Int?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  favorites         UserFavorite[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relacionamento com os favoritos
-  favorites          UserFavorite[]
   @@map("usuario")
 }
 
-// Tabela para relacionar o Usuário com os Pokémon favoritados da PokéAPI
 model UserFavorite {
-  id         String   @id @default(uuid())
-  userId     String
-  pokemonId  Int      // ID retornado pela PokéAPI (ex: 1 para Bulbasaur)
-  createdAt  DateTime @default(now())
+  id        Int   @id @default(autoincrement())
+  userId    Int 
+  pokemonId Int
+  createdAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Garante que o usuário não favorite o mesmo Pokémon duas vezes
   @@unique([userId, pokemonId])
-
   @@map("usuario_favorito")
 }
-

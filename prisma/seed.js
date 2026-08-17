@@ -1,38 +1,57 @@
 import pg from 'pg';
 import 'dotenv/config';
-import pkg from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const { PrismaClient } = pkg;
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    console.log('🌱 Resetando tabela exemplo...');
+  console.log('🌱 Limpando registros antigos...');
 
-    // Remove todos os registros
-    // await prisma.exemplo.deleteMany();
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "usuario_favorito", "usuario" RESTART IDENTITY CASCADE;`);
+  // 1. Limpa primeiro a tabela dependente (UserFavorite) para não quebrar a chave estrangeira
+  await prisma.userFavorite.deleteMany();
+  // 2. Limpa a tabela principal de Usuários
+  await prisma.usuario.deleteMany();
 
-    console.log('📦 Inserindo novos registros...');
+  console.log('📦 Inserindo novos usuários...');
 
-    await prisma.usuario.createMany({
-        data: [
-            { name: 'João', email: 'joao@example.com', password: '1234483' },
-            { name: 'Maria', email: 'maria@example.com', password: '1862941' },
-            { name: 'Pedro', email: 'pedro@example.com', password: '1234567' },
-            { name: 'Julia', email: 'julia@example.com', password: '1233333' },
-        ],
-    });
+  const joao = await prisma.usuario.create({
+    data: { name: 'João', email: 'joao@example.com', password: '123' },
+  });
 
-    console.log('✅ Seed concluído!');
+  const maria = await prisma.usuario.create({
+    data: { name: 'Maria', email: 'maria@example.com', password: '123' },
+  });
+
+  await prisma.usuario.create({
+    data: { name: 'Pedro', email: 'pedro@example.com', password: '123' },
+  });
+  await prisma.usuario.create({
+    data: { name: 'Ana', email: 'ana@example.com', password: '123' },
+  });
+
+  console.log('⭐ Inserindo Pokémon favoritos...');
+
+  await prisma.userFavorite.createMany({
+    data: [
+      { userId: joao.id, pokemonId: 1 },
+      { userId: joao.id, pokemonId: 25 },
+      { userId: maria.id, pokemonId: 4 },
+    ],
+  });
+
+  console.log('✅ Seed executado com sucesso!');
 }
 
 main()
-    .catch((e) => {
-        console.error('❌ Erro no seed:', e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((e) => {
+    console.error('❌ Erro no seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });
