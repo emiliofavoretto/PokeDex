@@ -1,3 +1,5 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import UsuarioModel from '../models/UsuarioModel.js';
 
 export const criar = async (req, res) => {
@@ -11,20 +13,47 @@ export const criar = async (req, res) => {
         if (!name || typeof name !== 'string' || !name.trim()) {
             return res.status(400).json({ error: 'O campo "name" é obrigatório!' });
         }
+        if (name.length > 50) {
+            return res.status(400).json({ error: 'O nome deve ter no máximo 50 caracteres (incluindo espaços)!' });
+        }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email || typeof email !== 'string' || !email.trim()) {
             return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
+        }
+        if (!emailRegex.test(email.trim())) {
+            return res.status(400).json({ error: 'Informe um e-mail em formato válido (ex: nome@gmail.com)!' });
         }
 
         if (!password || typeof password !== 'string' || !password.trim()) {
             return res.status(400).json({ error: 'O campo "password" é obrigatório!' });
         }
+        if (password.length < 8) {
+            return res.status(400).json({ error: 'A senha deve ter no mínimo 8 caracteres!' });
+        }
 
-        const usuario = new UsuarioModel({ name, email, password });
+        const nomeFormatado = name.trim();
+        const emailFormatado = email.trim().toLowerCase();
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const usuario = new UsuarioModel({ 
+            name: nomeFormatado, 
+            email: emailFormatado, 
+            password: passwordHash 
+        });
+        
         const data = await usuario.criar();
+
+        delete data.password;
 
         return res.status(201).json({ message: 'Registro criado com sucesso!', data });
     } catch (error) {
+        
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: 'Este e-mail já está em uso por outro usuário!' });
+        }
+
         console.error('Erro ao criar:', error);
         return res.status(500).json({ error: 'Erro interno ao salvar o registro.' });
     }
@@ -125,5 +154,45 @@ export const deletar = async (req, res) => {
     } catch (error) {
         console.error('Erro ao deletar:', error);
         return res.status(500).json({ error: 'Erro ao deletar registro.' });
+    }
+};
+
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'E-mail e senha são obrigatórios!' });
+        }
+
+        const usuario = await UsuarioModel.buscarPorEmail(email.trim().toLowerCase());
+
+        if (!usuario) {
+            return res.status(401).json({ error: 'E-mail ou senha inválidos!' });
+        }
+
+        const senhaValida = await bcrypt.compare(password, usuario.password);
+
+        if (!senhaValida) {
+            return res.status(401).json({ error: 'E-mail ou senha inválidos!' });
+        }
+
+        delete usuario.password;
+
+       const token = jwt.sign(
+            { id: usuario.id, role: usuario.role }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '1d' }
+        );
+
+        return res.status(200).json({ 
+            message: 'Login realizado com sucesso!', 
+            usuario,
+            token 
+        });
+
+    } catch (error) {
+        console.error('Erro no login:', error);
+        return res.status(500).json({ error: 'Erro interno ao tentar fazer login.' });
     }
 };

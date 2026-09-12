@@ -52,4 +52,10 @@ export default class UsuarioModel {
         }
         return new UsuarioModel(data);
     }
+
+    static async buscarPorEmail(email) {
+        return await prisma.usuario.findUnique({
+            where: { email }
+        });
+    }
 }

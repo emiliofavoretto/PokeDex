@@ -12,6 +12,7 @@ model Usuario {
   name              String
   email             String         @unique
   password          String
+  role              String         @default("USER")
   avatarUrl         String?
   favoritePokemonId Int?
   createdAt         DateTime       @default(now())
