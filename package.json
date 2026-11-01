@@ -20,7 +20,7 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
-    "@prisma/client": "^7.3.0",
+    "@prisma/client": "^7.10.1",
     "@supabase/supabase-js": "^2.112.3",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "prisma": "^7.3.0",
+    "prisma": "^7.10.1",
     "seed": "node prisma/seed.js"
   }
 }
