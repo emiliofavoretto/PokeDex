@@ -6,7 +6,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "cls && nodemon src/server.js"
+    "dev": "cls && nodemon src/server.js",
+    "start": "node src/index.js"
   },
   "keywords": [
     "SENAI",
