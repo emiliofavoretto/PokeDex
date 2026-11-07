@@ -45,3 +45,19 @@ export const verificarAdmin = async (req, res, next) => {
         return res.status(500).json({ error: 'Erro interno na validação de permissão.' });
     }
 };
+
+export const verificarToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token não informado.' });
+    }
+
+    try {
+        const token = authHeader.split(' ')[1];
+        req.usuario = jwt.verify(token, process.env.JWT_SECRET); 
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    }
+};

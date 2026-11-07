@@ -62,11 +62,6 @@ export const criar = async (req, res) => {
 export const buscarTodos = async (req, res) => {
     try {
         const registros = await UsuarioModel.buscarTodos(req.query);
-
-        if (!registros || registros.length === 0) {
-            return res.status(400).json({ message: 'Nenhum registro encontrado.' });
-        }
-
         return res.status(200).json(registros);
     } catch (error) {
         console.error('Erro ao buscar:', error);
@@ -76,19 +71,20 @@ export const buscarTodos = async (req, res) => {
 
 export const buscarPorId = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = parseInt(req.params.id);
 
         if (isNaN(id)) {
             return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
         }
 
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
+        const usuario = await UsuarioModel.buscarPorId(id);
 
         if (!usuario) {
             return res.status(404).json({ error: 'Registro não encontrado.' });
         }
 
-        return res.status(200).json({ data: usuario });
+        const { password, ...usuarioSemSenha } = usuario;
+        return res.status(200).json({ data: usuarioSemSenha });
     } catch (error) {
         console.error('Erro ao buscar:', error);
         return res.status(500).json({ error: 'Erro ao buscar registro.' });
@@ -97,38 +93,61 @@ export const buscarPorId = async (req, res) => {
 
 export const atualizar = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = parseInt(req.params.id);
 
         if (isNaN(id)) {
             return res.status(400).json({ error: 'ID inválido.' });
+        }
+
+        // só o próprio usuário (ou um admin) pode alterar
+        if (req.usuario.id !== id && req.usuario.role !== 'ADMIN') {
+            return res.status(403).json({ error: 'Você não tem permissão para alterar este usuário.' });
         }
 
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
+        const usuario = await UsuarioModel.buscarPorId(id);
 
         if (!usuario) {
             return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
         }
 
-        if (req.body.name !== undefined) {
-            usuario.name = req.body.name;
+        const { name, email, password, avatarUrl, favoritePokemonId } = req.body;
+
+        if (name !== undefined) {
+            if (typeof name !== 'string' || !name.trim() || name.length > 50) {
+                return res.status(400).json({ error: 'Nome inválido (máx. 50 caracteres).' });
+            }
+            usuario.name = name.trim();
         }
 
-        if (req.body.email !== undefined) {
-            usuario.email = req.body.email;
+        if (email !== undefined) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
+                return res.status(400).json({ error: 'E-mail em formato inválido.' });
+            }
+            usuario.email = email.trim().toLowerCase();
         }
 
-        if (req.body.password !== undefined) {
-            usuario.password = req.body.password;
+        if (password !== undefined) {
+            if (typeof password !== 'string' || password.length < 8) {
+                return res.status(400).json({ error: 'A senha deve ter no mínimo 8 caracteres!' });
+            }
+            usuario.password = await bcrypt.hash(password, 10); // agora com hash
         }
+
+        if (avatarUrl !== undefined) usuario.avatarUrl = avatarUrl;
+        if (favoritePokemonId !== undefined) usuario.favoritePokemonId = favoritePokemonId;
 
         const data = await usuario.atualizar();
 
         return res.status(200).json({ message: `O registro "${data.name}" foi atualizado com sucesso!`, data });
     } catch (error) {
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: 'Este e-mail já está em uso por outro usuário!' });
+        }
         console.error('Erro ao atualizar:', error);
         return res.status(500).json({ error: 'Erro ao atualizar registro.' });
     }
@@ -136,21 +155,21 @@ export const atualizar = async (req, res) => {
 
 export const deletar = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = parseInt(req.params.id);
 
         if (isNaN(id)) {
             return res.status(400).json({ error: 'ID inválido.' });
         }
 
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
+        const usuario = await UsuarioModel.buscarPorId(id);
 
         if (!usuario) {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
 
-        await usuario.deletar();
+        const deletado = await usuario.deletar();
 
-        return res.status(200).json({ message: `O registro "${usuario.name}" foi deletado com sucesso!`, deletado: usuario });
+        return res.status(200).json({ message: `O registro "${deletado.name}" foi deletado com sucesso!`, deletado });
     } catch (error) {
         console.error('Erro ao deletar:', error);
         return res.status(500).json({ error: 'Erro ao deletar registro.' });
