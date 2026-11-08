@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
   "http://localhost:5173",          
-  "https://pokedex-2q5n.onrender.com", 
+  "https://pokedex-frontend-qp5g.onrender.com", 
 ];
 
 app.use(
